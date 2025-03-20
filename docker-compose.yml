@@ -1,0 +1,57 @@
+
+services:
+  zookeeper:
+    image: bitnami/zookeeper:latest
+    container_name: zookeeper
+    environment:
+      - ALLOW_ANONYMOUS_LOGIN=yes
+    ports:
+      - "2181:2181" # Expose nếu cần truy cập bên ngoài
+    networks:
+      - mynet
+
+  kafka:
+    image: bitnami/kafka:latest
+    container_name: kafka
+    environment:
+      - KAFKA_BROKER_ID=1
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092
+      - KAFKA_CFG_ZOOKEEPER_CONNECT=zookeeper:2181
+      - ALLOW_PLAINTEXT_LISTENER=yes
+    ports:
+      - "9092:9092" # Expose nếu cần truy cập bên ngoài
+    depends_on:
+      - zookeeper
+    networks:
+      - mynet
+
+  spark-master:
+    image: bitnami/spark:latest
+    container_name: spark-master
+    environment:
+      - SPARK_MODE=master
+    ports:
+      - "7077:7077" # Spark master port
+      - "8080:8080" # Spark master UI
+    volumes:
+    - ./Streaming/main.py:/opt/bitnami/spark/jobs/main.py 
+    networks:
+      - mynet
+
+  spark-worker:
+    image: bitnami/spark:latest
+    container_name: spark-worker
+    environment:
+      - SPARK_MODE=worker
+      - SPARK_MASTER_URL=spark://spark-master:7077
+    depends_on:
+      - spark-master
+    ports:
+      - "8081:8081" # Spark worker UI
+    networks:
+      - mynet
+
+networks:
+  mynet:
+    driver: bridge
