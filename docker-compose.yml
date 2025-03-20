@@ -35,7 +35,8 @@ services:
       - "7077:7077" # Spark master port
       - "8080:8080" # Spark master UI
     volumes:
-    - ./Streaming/main.py:/opt/bitnami/spark/jobs/main.py 
+      - ./Streaming/main.py:/opt/bitnami/spark/jobs/main.py 
+      - ./postgresql.jar:/opt/bitnami/spark/jars/postgresql.jar
     networks:
       - mynet
 
@@ -52,6 +53,26 @@ services:
     networks:
       - mynet
 
+  db:
+    image: postgres
+    container_name: postgres-db
+    restart: always
+    shm_size: 128mb
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: example
+      POSTGRES_DB: mydatabase
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      
+
+    networks:
+      - mynet
+
 networks:
   mynet:
     driver: bridge
+volumes:
+  postgres-data:
