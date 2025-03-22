@@ -1,21 +1,25 @@
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, from_json, expr
-from pyspark.sql.types import StructType, StringType, IntegerType, DoubleType
-#LOAD
+from pyspark.sql.types import StructType, StringType, IntegerType, DoubleType, DateType
+
+# 1. Khởi tạo SparkSession
 spark = SparkSession.builder \
-    .appName("Spark Kafka Streaming Sales") \
+    .appName("Spark Kafka Streaming to Postgres - Sales") \
     .master("spark://spark-master:7077") \
     .getOrCreate()
 
 kafka_bootstrap_servers = "kafka:9092"
 topic = "sales-topic"
 
+
 sales_schema = StructType() \
+    .add("sale_id", StringType()) \
     .add("product_id", StringType()) \
     .add("customer_id", StringType()) \
     .add("quantity", IntegerType()) \
     .add("sale_date", StringType()) \
     .add("price", DoubleType())
+
 
 df = spark.readStream \
     .format("kafka") \
@@ -24,27 +28,27 @@ df = spark.readStream \
     .option("startingOffsets", "earliest") \
     .load()
 
-messages = df.selectExpr("CAST(value AS STRING) as raw_value")
-
-from pyspark.sql.functions import split
-# TRANSFORM
-split_cols = split(col("raw_value"), ",")
+messages = df.selectExpr("CAST(key AS STRING)", "CAST(value AS STRING)")
 
 parsed_messages = messages.select(
-    expr("uuid()").alias("sale_id"),          
-    split_cols.getItem(1).alias("product_id"),
-    split_cols.getItem(2).alias("customer_id"),
-    split_cols.getItem(3).cast(IntegerType()).alias("quantity"),
-    split_cols.getItem(4).alias("sale_date"),
-    split_cols.getItem(5).cast(DoubleType()).alias("price")
+    from_json(col("value"), sales_schema).alias("data")
+).select(
+    expr("uuid()").alias("id"),          
+    col("data.sale_id"),
+    col("data.product_id"),
+    col("data.customer_id"),
+    col("data.quantity"),
+    col("data.sale_date").cast(DateType()), 
+    col("data.price")
 )
 
 parsed_messages.printSchema()
 
+# 7. Hàm ghi vào PostgreSQL
 def write_to_postgres(batch_df, batch_id):
     print(f"\n=== Batch {batch_id} ===")
-    count = batch_df.count()
 
+    count = batch_df.count()
     if count == 0:
         print(f"Batch {batch_id} is empty. Skipping write.")
         return
@@ -67,8 +71,7 @@ def write_to_postgres(batch_df, batch_id):
     except Exception as e:
         print(f"Error writing batch {batch_id} to PostgreSQL: {e}")
 
-# Start stream processing
-#LOAD 
+# 8. Viết stream vào Postgres
 query = parsed_messages.writeStream \
     .outputMode("append") \
     .foreachBatch(write_to_postgres) \

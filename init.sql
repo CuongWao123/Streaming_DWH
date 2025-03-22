@@ -19,7 +19,7 @@ CREATE TABLE products (
 
 
 CREATE TABLE sales (
-    id UUID PRIMARY KEY,                 
+    sale_id VARCHAR(50) PRIMARY KEY,               
     product_id VARCHAR(50) NOT NULL,     
     customer_id VARCHAR(255) NOT NULL,    
     quantity INT CHECK (quantity > 0),    
