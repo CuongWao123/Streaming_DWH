@@ -6,13 +6,16 @@ docker exec -it kafka kafka-console-producer.sh --topic my-topic --bootstrap-ser
 
 
 # spark master container 
-docker exec -it spark-master /bin/bash
+
+
 spark-submit \
   --master spark://spark-master:7077 \
   --deploy-mode client \
   --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.1 \
   --jars /opt/bitnami/spark/jars/postgresql.jar \
   /opt/bitnami/spark/jobs/main.py
+
+
 
 
 

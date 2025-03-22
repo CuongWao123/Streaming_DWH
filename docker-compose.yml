@@ -7,24 +7,30 @@ services:
       - ALLOW_ANONYMOUS_LOGIN=yes
     ports:
       - "2181:2181" # Expose nếu cần truy cập bên ngoài
-    networks:
-      - mynet
+
 
   kafka:
     image: bitnami/kafka:latest
     container_name: kafka
     environment:
       - KAFKA_BROKER_ID=1
-      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092
-      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092
+      # 🔥 Listeners: both PLAINTEXT and PLAINTEXT_HOST!
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://0.0.0.0:9092,PLAINTEXT_HOST://0.0.0.0:29092
+      # 🔥 Advertise them
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      - KAFKA_CFG_INTER_BROKER_LISTENER_NAME=PLAINTEXT
       - KAFKA_CFG_ZOOKEEPER_CONNECT=zookeeper:2181
       - ALLOW_PLAINTEXT_LISTENER=yes
     ports:
-      - "9092:9092" # Expose nếu cần truy cập bên ngoài
+      - "9092:9092"    # Kafka inside Docker network
+      - "29092:29092"  # Kafka exposed to localhost (outside Docker)
     depends_on:
-      - zookeeper
-    networks:
-      - mynet
+      - zookeeper         
+
+
+      
+
 
   spark-master:
     image: bitnami/spark:latest
@@ -35,23 +41,52 @@ services:
       - "7077:7077" # Spark master port
       - "8080:8080" # Spark master UI
     volumes:
-      - ./Streaming/main.py:/opt/bitnami/spark/jobs/main.py 
+      - ./ProcessingData/customer/ETL.py:/opt/bitnami/spark/jobs/custETL.py 
+      - ./ProcessingData/product/ETL.py:/opt/bitnami/spark/jobs/productETL.py
+      - ./ProcessingData/sales/ETL.py:/opt/bitnami/spark/jobs/salesETL.py 
       - ./postgresql.jar:/opt/bitnami/spark/jars/postgresql.jar
-    networks:
-      - mynet
 
-  spark-worker:
+
+  spark-worker-1:
     image: bitnami/spark:latest
-    container_name: spark-worker
+    container_name: spark-worker-1
     environment:
       - SPARK_MODE=worker
       - SPARK_MASTER_URL=spark://spark-master:7077
+      - SPARK_WORKER_MEMORY=2G
+      - SPARK_WORKER_CORES=1
     depends_on:
       - spark-master
     ports:
-      - "8081:8081" # Spark worker UI
-    networks:
-      - mynet
+      - "8081:8081"  # UI port, nên khác nhau nếu mở bên ngoài
+
+  spark-worker-2:
+    image: bitnami/spark:latest
+    container_name: spark-worker-2
+    environment:
+      - SPARK_MODE=worker
+      - SPARK_MASTER_URL=spark://spark-master:7077
+      - SPARK_WORKER_MEMORY=2G
+      - SPARK_WORKER_CORES=1
+    depends_on:
+      - spark-master
+    ports:
+      - "8082:8081"  # UI port khác nhau nếu expose
+
+  spark-worker-3:
+    image: bitnami/spark:latest
+    container_name: spark-worker-3
+    environment:
+      - SPARK_MODE=worker
+      - SPARK_MASTER_URL=spark://spark-master:7077
+      - SPARK_WORKER_MEMORY=2G
+      - SPARK_WORKER_CORES=1
+    depends_on:
+      - spark-master
+    ports:
+      - "8083:8081"  # UI port khác nhau nếu expose
+
+
 
   db:
     image: postgres
@@ -66,13 +101,23 @@ services:
       - "5432:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
-      
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
 
-    networks:
-      - mynet
+  # python-producer:
+  #   image: python:3.10-slim
+  #   build: 
+  #     context: Streaming/python-init/. 
+  #   container_name: python-producer
+  #   volumes:
+  #     - ./testAPI.py:/app/testAPI.py
+  #     - ./datasetIngestion.py:/app/datasetIngestion.py
+  #   working_dir: /app
+  #   depends_on:
+  #     - kafka
+  #   command: python /app/datasetIngestion.py
 
-networks:
-  mynet:
-    driver: bridge
+
+
+
 volumes:
   postgres-data:
