@@ -44,6 +44,7 @@ services:
       - ./ProcessingData/customer/ETL.py:/opt/bitnami/spark/jobs/custETL.py 
       - ./ProcessingData/product/ETL.py:/opt/bitnami/spark/jobs/productETL.py
       - ./ProcessingData/sales/ETL.py:/opt/bitnami/spark/jobs/salesETL.py 
+      - ./ProcessingData/weather/ETL.py:/opt/bitnami/spark/jobs/weatherETL.py 
       - ./postgresql.jar:/opt/bitnami/spark/jars/postgresql.jar
 
 
