@@ -20,7 +20,7 @@ spark-submit \
   --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.1 \
   --jars /opt/bitnami/spark/jars/postgresql.jar \
   --total-executor-cores 1  \
-  /opt/bitnami/spark/jobs/main.py
+  /opt/bitnami/spark/jobs/weatherETL.py
 
 
 
@@ -29,4 +29,4 @@ spark-submit \
 
 # connect to posgre db
 docker exec -it postgres-db psql -U user -d mydatabase
-\c mydatabase # connect to mydatabase
+\c mydatabase #\c connect to mydatabase

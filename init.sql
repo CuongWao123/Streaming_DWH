@@ -130,8 +130,8 @@ CREATE TABLE current (
 -- ====================
 -- TABLE: data (Trung gian)
 -- ====================
-CREATE TABLE data (
-    data_id SERIAL PRIMARY KEY,
+CREATE TABLE datas (
+    data_id VARCHAR(50) PRIMARY KEY,
 
     request_id VARCHAR(50),
     location_id VARCHAR(50),

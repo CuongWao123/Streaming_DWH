@@ -137,19 +137,15 @@ def process_and_write_weather(batch_df, batch_id):
 
     df_request_indexed = df_request.withColumn("idx", monotonically_increasing_id())
     df_location_indexed = df_location.withColumn("idx", monotonically_increasing_id())
-    df_current_final_indexed = df_current.withColumn("idx", monotonically_increasing_id())
+    df_current_final_indexed = df_current_raw.withColumn("idx", monotonically_increasing_id())
 
     df_data = df_request_indexed.join(
         df_location_indexed.select("idx", "location_id"), on="idx"
     ).join(
         df_current_final_indexed.select("idx", "current_id"), on="idx"
-    ).select(
-        col("request_id"),
-        col("location_id"),
-        col("current_id")
-    )
+    ).select("request_id", "location_id", "current_id").withColumn("data_id", expr("uuid()"))
 
-
+    print(df_data) 
 
     for dataframe, table in [
         (df_request.drop("idx"), "request"),
@@ -157,7 +153,7 @@ def process_and_write_weather(batch_df, batch_id):
         (df_current.drop("idx"), "current"),
         (df_air_quality.drop("idx"), "current_air_quality"),
         (df_astro.drop("idx"), "current_astro"),
-        (df_data, "data")
+        (df_data.drop("idx"), "datas")
     ]:
         print(f"Writing {table} for batch {batch_id}...")
 
