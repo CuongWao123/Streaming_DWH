@@ -15,58 +15,23 @@ docker compose up -d
 
 ### 2. Create Kafka Topics
 ```bash
-docker exec -it kafka kafka-topics.sh --create --topic customer-topic --bootstrap-server localhost:9092 --partitions 1 --replication-factor 1
-docker exec -it kafka kafka-topics.sh --create --topic product-topic --bootstrap-server localhost:9092 --partitions 1 --replication-factor 1
-docker exec -it kafka kafka-topics.sh --create --topic sales-topic --bootstrap-server localhost:9092 --partitions 1 --replication-factor 1
+docker exec -it kafka kafka-topics.sh --create --topic weather-topic --bootstrap-server localhost:9092 --partitions 1 --replication-factor 1
 ```
 
 ---
 
 ### 3. Run Spark Streaming Jobs (in separate terminals)
 
-#### Product ETL Job
+#### ETL Job
 ```bash
-docker exec -it spark-master /bin/bash
-spark-submit \
-  --master spark://spark-master:7077 \
-  --deploy-mode client \
-  --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.1 \
-  --jars /opt/bitnami/spark/jars/postgresql.jar \
-  --total-executor-cores 1 \
-  /opt/bitnami/spark/jobs/productETL.py
-```
-
-#### Customer ETL Job
-```bash
-docker exec -it spark-master /bin/bash
-spark-submit \
-  --master spark://spark-master:7077 \
-  --deploy-mode client \
-  --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.1 \
-  --jars /opt/bitnami/spark/jars/postgresql.jar \
-  --total-executor-cores 1 \
-  /opt/bitnami/spark/jobs/custETL.py
-```
-
-#### Sales ETL Job
-```bash
-docker exec -it spark-master /bin/bash
-spark-submit \
-  --master spark://spark-master:7077 \
-  --deploy-mode client \
-  --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.1 \
-  --jars /opt/bitnami/spark/jars/postgresql.jar \
-  --total-executor-cores 1 \
-  /opt/bitnami/spark/jobs/salesETL.py
+docker exec -it spark-master spark-submit --master spark://spark-master:7077 --deploy-mode client --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.1 --jars /opt/bitnami/spark/jars/postgresql.jar --total-executor-cores 1 /opt/bitnami/spark/jobs/weatherETL.py
 ```
 
 ---
 
 ### 4. Run Kafka Data Producers
 ```bash
-python producer/product_producer.py
-python producer/cust_producer.py
-python producer/sales_producer.py
+python streaming/weatherStreaming.py
 ```
 
 ---
@@ -101,25 +66,6 @@ Then, create dashboards and visualize your data!
 
 ---
 
-## 📁 Project Structure
-
-```
-.
-├── docker-compose.yml
-├── ProcessingData
-│   ├── customer
-│   │   └── ETL.py
-│   ├── product
-│   │   └── ETL.py
-│   └── sales
-│       └── ETL.py
-├── producer
-│   ├── product_producer.py
-│   ├── cust_producer.py
-│   └── sales_producer.py
-├── postgresql.jar
-└── init.sql
-```
 
 ---
 
